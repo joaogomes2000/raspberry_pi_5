@@ -22,8 +22,9 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          python3 -m pip install --user --upgrade pip
-          python3 -m pip install --user alembic sqlalchemy psycopg2-binary
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install alembic sqlalchemy psycopg2-binary
 
       - name: Terraform init
         run: terraform init
@@ -32,4 +33,4 @@ jobs:
         run: terraform apply -auto-approve
 
       - name: Run Alembic migrations
-        run: python3 -m alembic upgrade head
+        run: .venv/bin/python -m alembic upgrade head
