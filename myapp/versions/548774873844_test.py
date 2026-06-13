@@ -30,7 +30,13 @@ def upgrade() -> None:
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=60), nullable=False),
-    sa.Column('workerId', sa.UUID(), nullable=False),
+    sa.Column(
+        'workerId',
+        sa.UUID(as_uuid=True),
+        nullable=False,
+        unique=True,
+        server_default=sa.text("gen_random_uuid()")
+    ),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('workerId')
