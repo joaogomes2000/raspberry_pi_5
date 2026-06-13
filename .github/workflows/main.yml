@@ -29,6 +29,16 @@ jobs:
       - name: Terraform init
         run: terraform init
 
+      - name: Import existing Docker resources
+        run: |
+          if docker volume inspect postgres_data >/dev/null 2>&1; then
+            terraform import docker_volume.pg_data postgres_data || true
+          fi
+
+          if docker container inspect my-postgres-db >/dev/null 2>&1; then
+            terraform import docker_container.postgres my-postgres-db || true
+          fi
+
       - name: Terraform apply
         run: terraform apply -auto-approve
 
