@@ -1,4 +1,5 @@
 from sqlalchemy import Column, DateTime, Integer, String, func
+from sqlalchemy.dialects.postgresql import UUID
 from models_new.base import Base
 
 class User(Base):
@@ -6,6 +7,13 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(60), nullable=False)
+    workerId = Column(
+                    UUID(as_uuid=True),
+                    default=uuid.uuid4,
+                    unique=True,
+                    nullable=False
+
+    )
     created_at = Column(DateTime, default=func.now())
 
     def __repr__(self):
