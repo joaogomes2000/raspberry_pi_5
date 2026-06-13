@@ -57,6 +57,15 @@ jobs:
           import_if_needed docker_volume.pg_data postgres_data docker volume inspect postgres_data
           import_if_needed docker_container.postgres my-postgres-db docker container inspect my-postgres-db
 
+      - name: Check if PostgreSQL already exists
+        id: postgres_exists
+        run: |
+          if docker container inspect my-postgres-db >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Terraform plan
         id: tfplan
         run: |
@@ -67,7 +76,7 @@ jobs:
           exit 0
 
       - name: Terraform apply
-        if: steps.tfplan.outputs.plan_exit == '2'
+        if: steps.tfplan.outputs.plan_exit == '2' && steps.postgres_exists.outputs.exists == 'false'
         run: terraform apply -auto-approve tfplan
 
       - name: Wait for PostgreSQL
