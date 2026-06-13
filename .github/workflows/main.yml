@@ -55,8 +55,18 @@ jobs:
           import_if_needed docker_volume.pg_data postgres_data docker volume inspect postgres_data
           import_if_needed docker_container.postgres my-postgres-db docker container inspect my-postgres-db
 
+      - name: Terraform plan
+        id: tfplan
+        run: |
+          set +e
+          terraform plan -detailed-exitcode -out=tfplan
+          plan_exit=$?
+          echo "plan_exit=$plan_exit" >> "$GITHUB_OUTPUT"
+          exit 0
+
       - name: Terraform apply
-        run: terraform apply -auto-approve
+        if: steps.tfplan.outputs.plan_exit == '2'
+        run: terraform apply -auto-approve tfplan
 
       - name: Wait for PostgreSQL
         run: |
