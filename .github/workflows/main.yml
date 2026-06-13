@@ -29,15 +29,31 @@ jobs:
       - name: Terraform init
         run: terraform init
 
-      - name: Import existing Docker resources
+      - name: Sync Terraform state with Docker
         run: |
-          if docker volume inspect postgres_data >/dev/null 2>&1; then
-            terraform import docker_volume.pg_data postgres_data || true
-          fi
+          state_has() {
+            terraform state list | grep -qx "$1"
+          }
 
-          if docker container inspect my-postgres-db >/dev/null 2>&1; then
-            terraform import docker_container.postgres my-postgres-db || true
-          fi
+          import_if_needed() {
+            local address="$1"
+            local import_id="$2"
+            shift 2
+
+            if state_has "$address"; then
+              echo "$address already exists in Terraform state"
+              return 0
+            fi
+
+            if "$@" >/dev/null 2>&1; then
+              terraform import "$address" "$import_id"
+            else
+              echo "$import_id not present in Docker, skipping import"
+            fi
+          }
+
+          import_if_needed docker_volume.pg_data postgres_data docker volume inspect postgres_data
+          import_if_needed docker_container.postgres my-postgres-db docker container inspect my-postgres-db
 
       - name: Terraform apply
         run: terraform apply -auto-approve
