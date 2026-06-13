@@ -31,6 +31,8 @@ jobs:
 
       - name: Sync Terraform state with Docker
         run: |
+          set -euo pipefail
+
           state_has() {
             terraform state list | grep -qx "$1"
           }
