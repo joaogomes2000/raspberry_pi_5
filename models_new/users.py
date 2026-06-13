@@ -1,4 +1,5 @@
 from sqlalchemy import Column, DateTime, Integer, String, func
+import uuid
 from sqlalchemy.dialects.postgresql import UUID
 from models_new.base import Base
 
