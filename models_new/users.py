@@ -15,7 +15,7 @@ class User(Base):
                     nullable=False
 
     )
-    created_at = Column(DateTime, default=func.now())
+    created_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"id: {self.id}, name: {self.name}"

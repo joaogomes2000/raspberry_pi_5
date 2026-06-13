@@ -7,7 +7,7 @@ class Company(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(60), nullable=False)
-    created_at = Column(DateTime, default=func.now())
+    created_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"id: {self.id}, name: {self.name}"
