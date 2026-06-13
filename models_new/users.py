@@ -10,7 +10,7 @@ class User(Base):
     name = Column(String(60), nullable=False)
     workerId = Column(
                     UUID(as_uuid=True),
-                    default=uuid.uuid4,
+                    server_default=func.gen_random_uuid(),
                     unique=True,
                     nullable=False
 
