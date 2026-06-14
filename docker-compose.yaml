@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  automacao_clima:
+    container_name: automacao_tapo_ac
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # CRUCIAL: Partilha a rede do host para o autodiscover por UDP funcionar
+    network_mode: "host"
+    # Reinicia o contentor automaticamente se o script falhar ou o PC reiniciar
+    restart: unless-stopped
+    # Garante que os prints do Python aparecem em tempo real no docker logs
+    environment:
+      - PYTHONUNBUFFERED=1
