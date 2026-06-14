@@ -25,7 +25,7 @@ def upgrade() -> None:
     CREATE OR REPLACE FUNCTION insert_company_users()
     RETURNS TRIGGER AS $$
     BEGIN
-        INSERT INTO company(userId)
+        INSERT INTO company("userId")
         VALUES (NEW.id);
         RETURN NEW;
     END;
