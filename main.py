@@ -1,6 +1,8 @@
 import asyncio
 from tapo import ApiClient
 from msmart.discover import Discover
+import time
+from datetime import datetime
 
 async def get_tapo_sensor_data(client, hub_ip, sensor_id):
     """Lê os dados de temperatura e humidade do sensor Tapo T315 através do Hub."""
@@ -48,7 +50,6 @@ async def main():
         if getattr(device, "id", None) == target_ac_id:
             ac_device = device
             break
-   
     if ac_device:
         print("\n--- Conectado ao AC Midea ---")
         try:
@@ -57,7 +58,7 @@ async def main():
             print(f"Aviso no refresh do AC: {e}")
 
         # Ler estado atual do AC antes de aplicar a automação
-        ac_is_on = getattr(ac_device, "power", False)
+        ac_is_on = getattr(ac_device, "_power_state", False)
         ac_target = getattr(ac_device, "target_temperature", "N/A")
         ac_mode = getattr(ac_device, "mode", None)
 
@@ -80,6 +81,7 @@ async def main():
             await ac_device.apply()
             print("[Automação] Comando aplicado com sucesso!")
             
+            
         else:
             sensor_readings = await get_tapo_sensor_data(tapo_client, hub_ip, sensor_id)
             tapo_temp = sensor_readings['temperature']
@@ -93,6 +95,9 @@ async def main():
             
     else:
         print(f"\n[Midea] Erro: O AC com o ID {target_ac_id} não foi encontrado na rede.")
+    print(datetime.now())
+    print('\n aguardar 5 min para correr novamente')
+    time.sleep(300)
 
 if __name__ == "__main__":
     asyncio.run(main())
