@@ -75,7 +75,7 @@ jobs:
 
   deploy:
     if: github.event_name == 'push' || github.event.pull_request.merged == true
-    needs: approve
+    needs:  manual-approval
     runs-on: self-hosted
     env:
       TF_IN_AUTOMATION: "true"
