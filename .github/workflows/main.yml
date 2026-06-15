@@ -26,7 +26,17 @@ jobs:
         run: terraform init
 
       - name: Terraform plan
-        run: terraform plan -detailed-exitcode -out=tfplan
+        run: set +e
+            terraform plan -detailed-exitcode -out=tfplan
+            code=$?
+
+            if [ $code -eq 1 ]; then
+              echo "Terraform plan failed"
+              exit 1
+            fi
+
+            echo "Terraform exit code: $code"
+            exit 0
 
       - name: Terraform show (PLAN OUTPUT)
         run: terraform show -no-color tfplan
