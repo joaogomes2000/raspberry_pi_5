@@ -54,14 +54,24 @@ jobs:
           name: tfplan
           path: tfplan
 
-  approve:
-    if: github.event_name == 'push' || github.event.pull_request.merged == true
+  manual-approval:
+    name: Manual Approval
+    runs-on: ubuntu-latest
     needs: terraform_plan
-    runs-on: self-hosted
-    environment: APPROVAL
+    if: success() # Only proceed if terraform-plan job succeeds
+    
+    permissions:
+      issues: write
+
     steps:
-      - name: Wait for approval
-        run: echo "Waiting for manual approval to apply Terraform"
+      - name: Await Manual Approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: joaogomes2000
+          minimum-approvals: 1
+          issue-title: "Manual Approval Required for Terraform Apply"
+          issue-body: "Please approve or deny the deployment."
 
   deploy:
     if: github.event_name == 'push' || github.event.pull_request.merged == true
