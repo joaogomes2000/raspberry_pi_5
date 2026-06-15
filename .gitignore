@@ -5,6 +5,7 @@
 .terraform.lock.hcl
 
 # Python
+**/__pycache__/
 __pycache__/
 *.pyc
 *.pyo
