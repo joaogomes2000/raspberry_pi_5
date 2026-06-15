@@ -52,6 +52,12 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Ensure Python dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install alembic sqlalchemy psycopg2-binary
+
       - name: Download Terraform plan
         uses: actions/download-artifact@v4
         with:
