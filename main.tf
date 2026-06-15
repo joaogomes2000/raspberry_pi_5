@@ -45,4 +45,8 @@ resource "docker_container" "postgres" {
     container_path = "/var/lib/postgresql/data"
   }
 
+  lifecycle {
+    create_before_destroy = true
+  }
+
 }
