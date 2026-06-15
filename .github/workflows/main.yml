@@ -69,6 +69,10 @@ jobs:
         with:
           name: tfplan
 
+      - name: Cleanup container
+        run: |
+          docker rm -f my-postgres-db || true
+
       - name: Terraform apply
         run: terraform apply -auto-approve tfplan
 
