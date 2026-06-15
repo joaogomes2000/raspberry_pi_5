@@ -13,108 +13,49 @@ jobs:
       TF_IN_AUTOMATION: "true"
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Ensure Python dependencies
-        run: |
-          python3 -m venv .venv
-          .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install alembic sqlalchemy psycopg2-binary
+      - uses: hashicorp/setup-terraform@v3
 
       - name: Terraform init
-        run: terraform init
+        run: terraform init -upgrade -reconfigure
 
       - name: Terraform plan
         run: terraform plan -out=tfplan
 
-      - name: Terraform show (PLAN OUTPUT)
-        run: terraform show -no-color tfplan
-
-      - name: Upload Terraform plan
+      - name: Upload plan
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
           path: tfplan
 
 
-  manual_show_and_approval:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: self-hosted
     needs: terraform_plan
 
     environment:
-      name: production
+      name: production   # 👈 AQUI acontece o approval
 
     steps:
-      - name: Download Terraform plan
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Download plan
         uses: actions/download-artifact@v4
         with:
           name: tfplan
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform show (approval view)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip
-
-          terraform show -no-color tfplan
-
-
-  deploy:
-    runs-on: self-hosted
-    needs: manual_show_and_approval
-    env:
-      TF_IN_AUTOMATION: "true"
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Ensure Python dependencies
-        run: |
-          python3 -m venv .venv
-          .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install alembic sqlalchemy psycopg2-binary
 
       - name: Terraform init
-        run: terraform init
+        run: terraform init -upgrade -reconfigure
 
-      - name: Download Terraform plan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan
+      # 👇 ISTO acontece ANTES do approval efetivo
+      - name: Show plan (review before apply)
+        run: terraform show -no-color tfplan
 
       - name: Cleanup container
-        run: |
-          docker rm -f my-postgres-db || true
+        run: docker rm -f my-postgres-db || true
 
       - name: Terraform apply
         run: terraform apply -auto-approve tfplan
-
-      - name: Wait for PostgreSQL
-        run: |
-          for i in $(seq 1 30); do
-            if docker exec my-postgres-db pg_isready -U myuser -d mydatabase; then
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "PostgreSQL did not become ready in time"
-          docker logs my-postgres-db
-          exit 1
-
-      - name: Run Alembic migrations
-        run: .venv/bin/python -m alembic upgrade head
-
-      - name: Deploy Clima Automation with Docker Compose
-        run: |
-          echo "A fazer deploy..."
-          docker compose up -d --build
