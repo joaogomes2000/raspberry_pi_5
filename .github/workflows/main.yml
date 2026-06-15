@@ -54,6 +54,9 @@ jobs:
         with:
           name: tfplan
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
       - name: Terraform show (approval view)
         run: |
           sudo apt-get update
