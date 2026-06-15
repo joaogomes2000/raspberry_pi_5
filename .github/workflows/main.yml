@@ -12,10 +12,9 @@ on:
       - closed
 
 jobs:
-  deploy:
+  terraform_plan:
     if: github.event_name == 'push' || github.event.pull_request.merged == true
     runs-on: self-hosted
-    environment: production
     env:
       TF_IN_AUTOMATION: "true"
     steps:
@@ -38,54 +37,64 @@ jobs:
       - name: Terraform init
         run: terraform init
 
-      - name: Sync Terraform state with Docker
-        run: |
-          set -euo pipefail
-
-          state_has() {
-            terraform state list | grep -qx "$1"
-          }
-
-          import_if_needed() {
-            local address="$1"
-            local import_id="$2"
-            shift 2
-
-            if state_has "$address"; then
-              echo "$address already exists in Terraform state"
-              return 0
-            fi
-
-            if "$@" >/dev/null 2>&1; then
-              terraform import "$address" "$import_id"
-            else
-              echo "$import_id not present in Docker, skipping import"
-            fi
-          }
-
-          import_if_needed docker_volume.pg_data postgres_data docker volume inspect postgres_data
-          import_if_needed docker_container.postgres my-postgres-db docker container inspect my-postgres-db
-
-      - name: Check if PostgreSQL already exists
-        id: postgres_exists
-        run: |
-          if docker container inspect my-postgres-db >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Terraform plan
         id: tfplan
         run: |
           set +e
           terraform plan -detailed-exitcode -out=tfplan
           plan_exit=$?
+          if [ "$plan_exit" -eq 1 ]; then
+            exit 1
+          fi
           echo "plan_exit=$plan_exit" >> "$GITHUB_OUTPUT"
-          exit 0
+
+      - name: Upload Terraform plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: tfplan
+
+  approve:
+    if: github.event_name == 'push' || github.event.pull_request.merged == true
+    needs: terraform_plan
+    runs-on: self-hosted
+    environment: APPROVAL
+    steps:
+      - name: Wait for approval
+        run: echo "Waiting for manual approval to apply Terraform"
+
+  deploy:
+    if: github.event_name == 'push' || github.event.pull_request.merged == true
+    needs: approve
+    runs-on: self-hosted
+    env:
+      TF_IN_AUTOMATION: "true"
+    steps:
+      - name: Prepare workspace
+        run: |
+          if [ ! -d .git ]; then
+            git clone https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git .
+          else
+            git remote set-url origin https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+            git fetch origin
+            git reset --hard origin/${{ github.ref_name }}
+          fi
+
+      - name: Ensure Python dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install alembic sqlalchemy psycopg2-binary
+
+      - name: Terraform init
+        run: terraform init
+
+      - name: Download Terraform plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
 
       - name: Terraform apply
-        if: steps.tfplan.outputs.plan_exit == '2' && steps.postgres_exists.outputs.exists == 'false'
         run: terraform apply -auto-approve tfplan
 
       - name: Wait for PostgreSQL
