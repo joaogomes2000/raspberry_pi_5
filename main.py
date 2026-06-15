@@ -90,8 +90,8 @@ async def main():
                 await ac_device.apply()
                 await ac_device.refresh()
                 print(f"\n[Automação] Temperatura do Tapo ({tapo_temp:.1f}°C) abaixo dos 22°C. AC desligado para poupar energia.")
-            
-            print(f"\n[Automação] Condição não gerada. Temperatura do sensor ({tapo_temp if tapo_temp else 'N/A'}°C) abaixo dos 23°C.")
+            else:
+                print(f"\n[Automação] Condição não gerada. Temperatura do sensor ({tapo_temp if tapo_temp else 'N/A'}°C) abaixo dos 23°C.")
             
     else:
         print(f"\n[Midea] Erro: O AC com o ID {target_ac_id} não foi encontrado na rede.")
