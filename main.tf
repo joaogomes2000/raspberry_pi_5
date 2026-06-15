@@ -22,10 +22,9 @@ resource "docker_image" "postgres" {
 
 # Run the PostgreSQL container
 resource "docker_container" "postgres" {
-  rm    = true
   image = docker_image.postgres.image_id
   name  = "my-postgres-db"
-
+  rm    = true
 
   # Configure environment variables for database credentials
   env = [
