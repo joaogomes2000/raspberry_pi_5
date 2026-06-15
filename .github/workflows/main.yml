@@ -26,15 +26,10 @@ jobs:
         run: terraform init
 
       - name: Terraform plan
-        id: tfplan
-        run: |
-          set +e
-          terraform plan -detailed-exitcode -out=tfplan
-          plan_exit=$?
-          if [ "$plan_exit" -eq 1 ]; then
-            exit 1
-          fi
-          echo "plan_exit=$plan_exit" >> "$GITHUB_OUTPUT"
+        run: terraform plan -detailed-exitcode -out=tfplan
+
+      - name: Terraform show (PLAN OUTPUT)
+        run: terraform show -no-color tfplan
 
       - name: Upload Terraform plan
         uses: actions/upload-artifact@v4
@@ -42,12 +37,31 @@ jobs:
           name: tfplan
           path: tfplan
 
+
+  manual_show_and_approval:
+    runs-on: ubuntu-latest
+    needs: terraform_plan
+
+    environment:
+      name: production   # 👈 AQUI acontece o approval
+
+    steps:
+      - name: Download Terraform plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+
+      - name: Terraform show (final confirmation)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+
+          terraform show -no-color tfplan
+
+
   deploy:
     runs-on: self-hosted
-    needs: terraform_plan
-    environment:
-      name: production   # 👈 ISTO ativa o approval do Environment
-
+    needs: manual_show_and_approval
     env:
       TF_IN_AUTOMATION: "true"
 
