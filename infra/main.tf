@@ -23,13 +23,8 @@ resource "docker_image" "postgres" {
 # Run the PostgreSQL container
 resource "docker_container" "postgres" {
   image = docker_image.postgres.image_id
-<<<<<<< Updated upstream:main.tf
-  name  = "my-postgres-db"
-  restart = "always"
-=======
   name  = var.postgres_container_name
-
->>>>>>> Stashed changes:infra/main.tf
+  restart = "always"
 
   # Configure environment variables for database credentials
   env = [
