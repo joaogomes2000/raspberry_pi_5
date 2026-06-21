@@ -6,12 +6,11 @@ on:
     branches:
       - main
 
+defaults:
+  run:
+    working-directory: infra
+
 jobs:
-
-  defaults:
-      run:
-        working-directory: infra
-
   terraform_plan:
     runs-on: self-hosted
 
