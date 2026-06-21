@@ -1,101 +1,96 @@
 name: Deploy infrastructure and migrations
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-
-defaults:
-  run:
-    working-directory: infra
+workflow_dispatch:
+push:
+branches:
+- main
 
 jobs:
-  terraform_plan:
-    runs-on: self-hosted
-
-   
-
-    env:
-      TF_IN_AUTOMATION: "true"
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform init
-        run: terraform init -upgrade -reconfigure
-
-      - name: Terraform plan
-        run: terraform plan -out=tfplan
-
-      - name: Show Terraform plan
-        run: terraform show -no-color tfplan
-
-      - name: Upload Terraform plan
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan
-          path: infra/tfplan
+terraform_plan:
+runs-on: self-hosted
 
 
-  deploy:
-    runs-on: self-hosted
-    needs: terraform_plan
+env:
+  TF_IN_AUTOMATION: "true"
 
-    environment:
-      name: production   # 👈 APPROVAL AQUI
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
 
-    env:
-      TF_IN_AUTOMATION: "true"
+  - name: Setup Terraform
+    uses: hashicorp/setup-terraform@v3
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  - name: Terraform init
+    run: terraform -chdir=infra init -upgrade -reconfigure
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+  - name: Terraform plan
+    run: terraform -chdir=infra plan -out=tfplan
 
-      - name: Ensure Python dependencies
-        run: |
-          python3 -m venv .venv
-          .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install alembic sqlalchemy psycopg2-binary
+  - name: Show Terraform plan
+    run: terraform -chdir=infra show -no-color tfplan
 
-      - name: Download Terraform plan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan
-          path: infra
+  - name: Upload Terraform plan
+    uses: actions/upload-artifact@v4
+    with:
+      name: tfplan
+      path: infra/tfplan
 
-      - name: Terraform init
-        run: terraform init -upgrade -reconfigure
 
-      - name: Cleanup old container
-        run: docker rm -f my-postgres-db || true
+deploy:
+runs-on: self-hosted
+needs: terraform_plan
 
-      - name: Terraform apply
-        run: terraform apply -auto-approve tfplan
+environment:
+  name: production
 
-      - name: Wait for PostgreSQL
-        run: |
-          for i in $(seq 1 30); do
-            if docker exec my-postgres-db pg_isready -U myuser -d mydatabase; then
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "PostgreSQL did not become ready in time"
-          docker logs my-postgres-db
-          exit 1
+env:
+  TF_IN_AUTOMATION: "true"
 
-      - name: Run Alembic migrations
-        run: .venv/bin/python -m alembic upgrade head
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
 
-      - name: Deploy with Docker Compose
-        run: |
-          echo "A fazer deploy da aplicação..."
-          docker compose up -d --build
+  - name: Setup Terraform
+    uses: hashicorp/setup-terraform@v3
+
+  - name: Ensure Python dependencies
+    run: |
+      python3 -m venv .venv
+      .venv/bin/python -m pip install --upgrade pip
+      .venv/bin/python -m pip install alembic sqlalchemy psycopg2-binary
+
+  - name: Download Terraform plan
+    uses: actions/download-artifact@v4
+    with:
+      name: tfplan
+      path: infra
+
+  - name: Terraform init
+    run: terraform -chdir=infra init -upgrade -reconfigure
+
+  - name: Cleanup old container
+    run: docker rm -f my-postgres-db || true
+
+  - name: Terraform apply
+    run: terraform -chdir=infra apply -auto-approve tfplan
+
+  - name: Wait for PostgreSQL
+    run: |
+      for i in $(seq 1 30); do
+        if docker exec my-postgres-db pg_isready -U myuser -d mydatabase; then
+          exit 0
+        fi
+        sleep 2
+      done
+      echo "PostgreSQL did not become ready in time"
+      docker logs my-postgres-db
+      exit 1
+
+  - name: Run Alembic migrations
+    run: .venv/bin/python -m alembic upgrade head
+
+  - name: Deploy with Docker Compose
+    run: |
+      echo "A fazer deploy da aplicação..."
+      docker compose up -d --build
