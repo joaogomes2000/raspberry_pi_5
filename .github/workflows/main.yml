@@ -68,7 +68,7 @@ jobs:
       - name: Download Terraform plan
         uses: actions/download-artifact@v4
         with:
-          name: infra
+          name: infra/tfplan
 
       - name: Terraform init
         run: terraform init -upgrade -reconfigure
