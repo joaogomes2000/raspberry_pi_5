@@ -8,7 +8,7 @@ on:
 
 jobs:
   terraform_plan:
-  runs-on: self-hosted
+    runs-on: self-hosted
 
   env:
     TF_IN_AUTOMATION: "true"
